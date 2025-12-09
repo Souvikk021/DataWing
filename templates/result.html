@@ -111,7 +111,6 @@
           </div>
         </div>
 
-        <!-- RIGHT: raw dict / quick JSON view -->
         <div class="col-lg-5">
           <div class="card p-3">
             <h6>Raw feature dictionary</h6>
@@ -126,7 +125,6 @@
     </div>
 
     <script>
-      // generate CSV from features object embedded in the page
       const features = {{ features | tojson }};
       function downloadCSV(obj, filename='features.csv') {
         const rows = [];

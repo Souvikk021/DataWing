@@ -8,11 +8,10 @@ from skimage import img_as_ubyte
 from scipy.spatial.distance import euclidean
 import pandas as pd
 
-# ---------------- Config ----------------
 UPLOAD_FOLDER = "static/uploads"
 PROCESSED_FOLDER = "static/processed"
 ALLOWED_EXT = {'png','jpg','jpeg','tif','tiff'}
-MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max upload
+MAX_CONTENT_LENGTH = 10 * 1024 * 1024  
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
@@ -23,7 +22,7 @@ app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
 app.secret_key = 'replace-with-a-random-secret'  # change this for production
 
-# ---------------- Helpers & extractor (all 10 features) ----------------
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXT
@@ -197,7 +196,6 @@ def extract_static_features_v2(img_bgr, image_name="uploaded"):
     images_out = {'gray': gray, 'thresh': thresh, 'skeleton': skel_u8, 'labels': labels}
     return features, images_out
 
-# ---------------- Routes ----------------
 
 @app.route('/')
 def index():
