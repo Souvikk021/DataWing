@@ -1,155 +1,185 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>Processing Result — Handwriting Features</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      img { max-width: 100%; height: auto; }
-      .feature-key { font-weight: 600; }
-      .group-card { box-shadow: 0 1px 6px rgba(0,0,0,0.06); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-      .small-muted { font-size: 0.85rem; color: #666; }
-    </style>
-  </head>
-  <body class="bg-white">
-    <div class="container py-4">
-      <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-          <a href="/" class="btn btn-outline-secondary">← Back</a>
-          <h1 class="mt-2">Processing result</h1>
-          <p class="small-muted">Static handwriting features extracted from the uploaded image.</p>
-        </div>
-        <div class="text-end">
-          <button id="downloadCsvBtn" class="btn btn-success mt-2">Download features (CSV)</button>
-        </div>
+
+<head>
+  <meta charset="utf-8">
+  <title>Processing Result — Handwriting Features</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    img {
+      width: 100%;
+      height: auto;
+    }
+
+    .feature-key {
+      font-weight: 600;
+    }
+
+    .small-muted {
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .thumb {
+      border: 1px solid #eee;
+      padding: 6px;
+      border-radius: 6px;
+      background: #fff;
+    }
+  </style>
+</head>
+
+<body class="bg-white">
+
+  <div class="container py-4">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <a href="/" class="btn btn-outline-secondary">← Back</a>
+        <h1 class="mt-2">Processing result</h1>
+        <p class="small-muted">
+          Static handwriting features extracted from each uploaded image / PDF page.
+        </p>
       </div>
 
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <h5>Original upload</h5>
-          <div class="border p-2"><img src="{{ upload_url }}" alt="uploaded" class="img-fluid"></div>
-        </div>
-
-        <div class="col-md-6">
-          <h5>Processed views</h5>
-          <div class="row g-2">
-            <div class="col-12 mb-2">
-              <div class="small-muted">Grayscale</div>
-              <div class="border p-1"><img src="{{ gray_url }}" alt="gray"></div>
-            </div>
-            <div class="col-6">
-              <div class="small-muted">Binarized (inverted)</div>
-              <div class="border p-1"><img src="{{ thresh_url }}" alt="thresh"></div>
-            </div>
-            <div class="col-6">
-              <div class="small-muted">Skeleton</div>
-              <div class="border p-1"><img src="{{ skel_url }}" alt="skeleton"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <hr>
-
-      <h4 class="mb-3">Extracted features</h4>
-
-      <div class="row">
-        <!-- LEFT: grouped features -->
-        <div class="col-lg-7">
-          <div class="group-card">
-            <h6>Size (Letter)</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Mean height</span><div>{{ features.mean_letter_height }}</div></div>
-              <div class="col-6"><span class="feature-key">Std height</span><div>{{ features.std_letter_height }}</div></div>
-              <div class="col-6"><span class="feature-key">Mean width</span><div>{{ features.mean_letter_width }}</div></div>
-              <div class="col-6"><span class="feature-key">Std width</span><div>{{ features.std_letter_width }}</div></div>
-              <div class="col-6"><span class="feature-key">Height CV</span><div>{{ features.letter_height_cv }}</div></div>
-              <div class="col-6"><span class="feature-key">Proportion std</span><div>{{ features.proportion_consistency_std }}</div></div>
-            </div>
-          </div>
-
-          <div class="group-card">
-            <h6>Spacing</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Letter spacing (30th pct)</span><div>{{ features.letter_spacing }}</div></div>
-              <div class="col-6"><span class="feature-key">Word spacing (80th pct)</span><div>{{ features.word_spacing }}</div></div>
-            </div>
-          </div>
-
-          <div class="group-card">
-            <h6>Slant & Skew</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Writing slant (deg)</span><div>{{ features.slant_angle_deg }}</div></div>
-              <div class="col-6"><span class="feature-key">Skew / baseline angle (deg)</span><div>{{ features.skew_angle_deg }}</div></div>
-            </div>
-          </div>
-
-          <div class="group-card">
-            <h6>Regularity & Margins</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Horizontal baseline std</span><div>{{ features.horizontal_regularity_baseline_std }}</div></div>
-              <div class="col-6"><span class="feature-key">Vertical reg. (height std)</span><div>{{ features.vertical_regularity_height_std_mean }}</div></div>
-              <div class="col-6"><span class="feature-key">Left margin std</span><div>{{ features.margin_alignment_std }}</div></div>
-            </div>
-          </div>
-
-          <div class="group-card">
-            <h6>Stroke & Connectivity</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Stroke length (total)</span><div>{{ features.stroke_length_total }}</div></div>
-              <div class="col-6"><span class="feature-key">Corner count (sharp angles)</span><div>{{ features.corner_count }}</div></div>
-              <div class="col-6"><span class="feature-key">Broken links count</span><div>{{ features.broken_links_count }}</div></div>
-            </div>
-          </div>
-
-          <div class="group-card">
-            <h6>Extras</h6>
-            <div class="row">
-              <div class="col-6"><span class="feature-key">Number components</span><div>{{ features.num_components }}</div></div>
-              <div class="col-6"><span class="feature-key">Total ink area</span><div>{{ features.total_ink_area }}</div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-lg-5">
-          <div class="card p-3">
-            <h6>Raw feature dictionary</h6>
-            <pre style="font-size:0.85rem">{{ features | tojson(indent=2) }}</pre>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <a href="/" class="btn btn-primary">Process another</a>
+      <div class="text-end">
+        <a href="{{ csv_url }}" class="btn btn-success mt-2" download>
+          Download all features (CSV)
+        </a>
       </div>
     </div>
 
-    <script>
-      const features = {{ features | tojson }};
-      function downloadCSV(obj, filename='features.csv') {
-        const rows = [];
-        rows.push(['feature','value']);
-        for (const k in obj) {
-          if (Object.prototype.hasOwnProperty.call(obj, k)) {
-            rows.push([k, String(obj[k])]);
-          }
-        }
-        const csvContent = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+    <h5 class="mb-3">
+      Processed samples ({{ results | length }})
+    </h5>
 
-      document.getElementById('downloadCsvBtn').addEventListener('click', function(){
-        const fname = (features.image_name ? features.image_name.replace(/\\s+/g,'_') + '_features.csv' : 'features.csv');
-        downloadCSV(features, fname);
-      });
-    </script>
-  </body>
+    <!-- RESULTS -->
+    <div class="row">
+      {% for r in results %}
+
+      <div class="col-12 mb-4">
+        <div class="card p-3">
+
+          <!-- IMAGES IN A ROW -->
+          <div class="row g-3 text-center">
+
+            <div class="col-md-3">
+              <div class="small-muted">Original</div>
+              <div class="thumb">
+                <img src="{{ r.upload_url }}" alt="original">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="small-muted">Grayscale</div>
+              <div class="thumb">
+                <img src="{{ r.gray_url }}" alt="gray">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="small-muted">Threshold</div>
+              <div class="thumb">
+                <img src="{{ r.thresh_url }}" alt="thresh">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="small-muted">Skeleton</div>
+              <div class="thumb">
+                <img src="{{ r.skel_url }}" alt="skeleton">
+              </div>
+            </div>
+
+          </div>
+
+          <hr>
+
+          <!-- SAMPLE INFO -->
+          <div>
+            <strong>Sample:</strong> {{ r.sample_name }} <br>
+            <small class="text-muted">
+              Source file: {{ r.source_filename }}
+            </small>
+          </div>
+
+          <!-- DYSGRAPHIA STATUS -->
+          <div class="mt-2">
+            <strong>Status:</strong>
+            <span class="badge
+              {% if 'Dysgraphic' in r.features.dysgraphia_label %}
+                bg-danger
+              {% else %}
+                bg-success
+              {% endif %}
+            ">
+              {{ r.features.dysgraphia_label }}
+            </span>
+            <small class="text-muted ms-2">
+              (score: {{ r.features.dysgraphia_score }})
+            </small>
+          </div>
+
+          <!-- KEY FEATURES -->
+          <div class="mt-3">
+            <h6>Key features</h6>
+            <div class="row">
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Mean height</span>
+                <div>{{ r.features.mean_letter_height }}</div>
+              </div>
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Mean width</span>
+                <div>{{ r.features.mean_letter_width }}</div>
+              </div>
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Letter spacing</span>
+                <div>{{ r.features.letter_spacing }}</div>
+              </div>
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Word spacing</span>
+                <div>{{ r.features.word_spacing }}</div>
+              </div>
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Height CV</span>
+                <div>{{ r.features.letter_height_cv }}</div>
+              </div>
+
+              <div class="col-md-3 col-6">
+                <span class="feature-key">Corner density</span>
+                <div>{{ r.features.corner_density }}</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- RAW FEATURES -->
+          <details class="mt-3">
+            <summary>Raw feature dictionary</summary>
+            <pre style="font-size:0.85rem">{{ r.features | tojson(indent=2) }}</pre>
+          </details>
+
+        </div>
+      </div>
+
+      {% endfor %}
+    </div>
+
+    <div class="mt-4">
+      <a href="/" class="btn btn-primary">
+        Process more samples
+      </a>
+    </div>
+
+  </div>
+
+</body>
 </html>
