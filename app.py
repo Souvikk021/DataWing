@@ -76,14 +76,23 @@ def extract_features(img, name):
     for i in range(1, num_labels):
         x, y, w, h, a = stats[i]
         if a > 20:
-            comps.append((x, y, w, h, centroids[i]))
+            comps.append((x, y, w, h, a, centroids[i]))
 
     heights = np.array([c[3] for c in comps])
     widths = np.array([c[2] for c in comps])
+    areas = np.array([c[4] for c in comps])
+    lefts = np.array([c[0] for c in comps])
+
     mean_h = float(np.mean(heights)) if len(heights) else 0
     std_h = float(np.std(heights)) if len(heights) else 0
+    mean_w = float(np.mean(widths)) if len(widths) else 0
+    std_w = float(np.std(widths)) if len(widths) else 0
 
     letter_height_cv = std_h / (mean_h + 1e-6)
+
+    # Width/height proportion consistency
+    proportions = widths / (heights + 1e-6)
+    proportion_consistency_std = float(np.std(proportions)) if len(proportions) else 0
 
     # Spacing
     comps_lr = sorted(comps, key=lambda c: c[0])
@@ -92,8 +101,8 @@ def extract_features(img, name):
         for i in range(len(comps_lr) - 1)
     ]
 
-    letter_spacing = np.percentile(gaps, 30) if gaps else 0
-    word_spacing = np.percentile(gaps, 80) if gaps else 0
+    letter_spacing = float(np.percentile(gaps, 30)) if gaps else 0
+    word_spacing = float(np.percentile(gaps, 80)) if gaps else 0
 
     # Skeleton
     skel = skeletonize(thresh > 0)
@@ -109,23 +118,50 @@ def extract_features(img, name):
         thresh, maxCorners=500, qualityLevel=0.01, minDistance=6
     )
     corner_count = 0 if corners is None else len(corners)
-    corner_density = corner_count / (np.sum(thresh > 0) + 1e-6)
 
-    # Baseline regularity (normalized)
-    baseline_std = np.std([c[4][1] for c in comps]) / (mean_h + 1e-6)
+    total_ink_area = float(np.sum(thresh > 0))
+    corner_density = corner_count / (total_ink_area + 1e-6)
+
+    # Regularity
+    baseline_std = np.std([c[5][1] for c in comps]) / (mean_h + 1e-6)
+    vertical_regularity_height_std = float(np.std(heights)) if len(heights) else 0
+    margin_alignment_std = float(np.std(lefts)) if len(lefts) else 0
+
+    num_components = len(comps)
+    component_density = num_components / (total_ink_area + 1e-6)
 
     features = {
         "image_name": name,
+
+        # Size
         "mean_letter_height": mean_h,
-        "mean_letter_width": float(np.mean(widths)) if len(widths) else 0,
-        "letter_spacing": float(letter_spacing),
-        "word_spacing": float(word_spacing),
-        "slant_angle_deg": 0.0,
+        "std_letter_height": std_h,
+        "mean_letter_width": mean_w,
+        "std_letter_width": std_w,
+        "letter_height_cv": letter_height_cv,
+        "proportion_consistency_std": proportion_consistency_std,
+
+        # Spacing
+        "letter_spacing": letter_spacing,
+        "word_spacing": word_spacing,
+
+        # Stroke & shape
+        "stroke_length_total": float(stroke_len),
         "corner_count": corner_count,
         "corner_density": corner_density,
-        "letter_height_cv": letter_height_cv,
-        "stroke_length_total": float(stroke_len),
+
+        # Structure
+        "num_components": num_components,
+        "total_ink_area": total_ink_area,
+        "component_density": component_density,
+
+        # Alignment & regularity
         "horizontal_regularity_baseline_std": float(baseline_std),
+        "vertical_regularity_height_std": vertical_regularity_height_std,
+        "margin_alignment_std": margin_alignment_std,
+
+        # Slant (kept neutral for static images)
+        "slant_angle_deg": 0.0
     }
 
     label, score = dysgraphia_screening(features)
@@ -133,6 +169,7 @@ def extract_features(img, name):
     features["dysgraphia_score"] = score
 
     return features, gray, thresh, skel_u8
+
 
 
 # ---------------- ROUTES ----------------
