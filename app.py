@@ -90,11 +90,9 @@ def extract_features(img, name):
 
     letter_height_cv = std_h / (mean_h + 1e-6)
 
-    # Width/height proportion consistency
     proportions = widths / (heights + 1e-6)
     proportion_consistency_std = float(np.std(proportions)) if len(proportions) else 0
 
-    # Spacing
     comps_lr = sorted(comps, key=lambda c: c[0])
     gaps = [
         comps_lr[i + 1][0] - (comps_lr[i][0] + comps_lr[i][2])
@@ -104,7 +102,6 @@ def extract_features(img, name):
     letter_spacing = float(np.percentile(gaps, 30)) if gaps else 0
     word_spacing = float(np.percentile(gaps, 80)) if gaps else 0
 
-    # Skeleton
     skel = skeletonize(thresh > 0)
     skel_u8 = img_as_ubyte(skel)
     ys, xs = np.where(skel_u8 > 0)
@@ -113,7 +110,6 @@ def extract_features(img, name):
         for i in range(len(xs) - 1)
     ) if len(xs) > 1 else 0
 
-    # Corners
     corners = cv2.goodFeaturesToTrack(
         thresh, maxCorners=500, qualityLevel=0.01, minDistance=6
     )
@@ -122,7 +118,6 @@ def extract_features(img, name):
     total_ink_area = float(np.sum(thresh > 0))
     corner_density = corner_count / (total_ink_area + 1e-6)
 
-    # Regularity
     baseline_std = np.std([c[5][1] for c in comps]) / (mean_h + 1e-6)
     vertical_regularity_height_std = float(np.std(heights)) if len(heights) else 0
     margin_alignment_std = float(np.std(lefts)) if len(lefts) else 0
@@ -160,7 +155,7 @@ def extract_features(img, name):
         "vertical_regularity_height_std": vertical_regularity_height_std,
         "margin_alignment_std": margin_alignment_std,
 
-        # Slant (kept neutral for static images)
+        # Slant
         "slant_angle_deg": 0.0
     }
 
@@ -169,7 +164,6 @@ def extract_features(img, name):
     features["dysgraphia_score"] = score
 
     return features, gray, thresh, skel_u8
-
 
 
 # ---------------- ROUTES ----------------
@@ -190,6 +184,7 @@ def upload():
 
         name, ext = os.path.splitext(f.filename)
 
+        # -------- PDF --------
         if ext.lower() == ".pdf":
             doc = fitz.open(stream=f.read(), filetype="pdf")
             for i, page in enumerate(doc):
@@ -200,8 +195,7 @@ def upload():
                 feats, g, t, s = extract_features(img, sample)
                 feats["source_file"] = f.filename
 
-                up = f"{sample}.png"
-                imwrite_safe(os.path.join(UPLOAD_FOLDER, up), img)
+                imwrite_safe(os.path.join(UPLOAD_FOLDER, f"{sample}.png"), img)
                 imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{sample}_g.png"), g)
                 imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{sample}_t.png"), t)
                 imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{sample}_s.png"), s)
@@ -210,13 +204,14 @@ def upload():
                 results.append({
                     "sample_name": sample,
                     "source_filename": f.filename,
-                    "upload_url": url_for("static", filename=f"uploads/{up}"),
+                    "upload_url": url_for("static", filename=f"uploads/{sample}.png"),
                     "gray_url": url_for("static", filename=f"processed/{sample}_g.png"),
                     "thresh_url": url_for("static", filename=f"processed/{sample}_t.png"),
                     "skel_url": url_for("static", filename=f"processed/{sample}_s.png"),
                     "features": feats
                 })
 
+        # -------- SINGLE IMAGE --------
         else:
             uid = uuid.uuid4().hex[:8]
             path = os.path.join(UPLOAD_FOLDER, uid + ext)
@@ -226,7 +221,21 @@ def upload():
             feats, g, t, s = extract_features(img, uid)
             feats["source_file"] = f.filename
 
+            imwrite_safe(os.path.join(UPLOAD_FOLDER, f"{uid}.png"), img)
+            imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{uid}_g.png"), g)
+            imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{uid}_t.png"), t)
+            imwrite_safe(os.path.join(PROCESSED_FOLDER, f"{uid}_s.png"), s)
+
             all_features.append(feats)
+            results.append({
+                "sample_name": uid,
+                "source_filename": f.filename,
+                "upload_url": url_for("static", filename=f"uploads/{uid}.png"),
+                "gray_url": url_for("static", filename=f"processed/{uid}_g.png"),
+                "thresh_url": url_for("static", filename=f"processed/{uid}_t.png"),
+                "skel_url": url_for("static", filename=f"processed/{uid}_s.png"),
+                "features": feats
+            })
 
     csv_path = os.path.join(PROCESSED_FOLDER, "features.csv")
     pd.DataFrame(all_features).to_csv(csv_path, index=False)
